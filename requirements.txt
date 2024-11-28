@@ -1,0 +1,15 @@
+# exp1~4:
+torch==2.4.1+cu124
+torchaudio==2.4.1+cu124
+torchvision==0.19.1+cu124
+pillow==10.3.0
+numpy==1.26.3
+matplotlib==3.9.2
+tqdm
+
+# exp5:
+PyQt5==5.15.10
+pandas==2.2.2
+haversine==2.8.1
+cartopy==0.23.0
+geopandas==1.0.1
