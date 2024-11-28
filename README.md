@@ -39,7 +39,7 @@
 ## 如何运行  
 1. 克隆该仓库：  
    ```bash  
-   git clone https://github.com/yourusername/AI-Intro-Assignment.git
+   git clone https://github.com/Saury997/AI-Intro-Assignment.git
    
 2. 实验代码以exp*.py格式命名
 
