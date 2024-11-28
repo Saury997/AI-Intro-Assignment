@@ -14,6 +14,8 @@ import torch
 import datetime
 from matplotlib import pyplot as plt
 from tqdm import tqdm
+import cartopy.crs as ccrs
+import geopandas as gpd
 
 
 def log_progress(epoch, avg_loss, accuracy, model_name, time):
@@ -41,7 +43,8 @@ def train_epoch(model, dataloader, criterion, optimizer, device):
     return running_loss / len(dataloader)
 
 
-def train(model, train_loader, test_loader, criterion, optimizer, scheduler, device, num_epochs, exp, patience=5, delta=1e-4):
+def train(model, train_loader, test_loader, criterion, optimizer, scheduler, device, num_epochs, exp, patience=5,
+          delta=1e-4):
     model.to(device)
     train_losses = []
     val_accuracies = []
@@ -85,6 +88,7 @@ def train(model, train_loader, test_loader, criterion, optimizer, scheduler, dev
     weight_path = f"weights/{model_name}_weights.pth"
     torch.save(model.state_dict(), weight_path)
 
+
 def plot_training_curves(train_losses, val_accuracies, exp, model_name):
     epochs = range(1, len(train_losses) + 1)
     plt.figure(figsize=(12, 5))
@@ -125,3 +129,83 @@ def test(model, test_loader, device):
             ground_truths.extend(labels.cpu().numpy())
 
     return predictions, ground_truths
+
+
+def plot_ga_convergence(costs, ax=None, save_fig=False, show=True):
+    """
+    绘制遗传算法收敛曲线
+    :param costs: 每代的代价 (成本)
+    :param ax: 要绘制的坐标轴，默认为 None（表示新建一个图形）
+    :param save_fig: 是否保存图像
+    """
+    if ax is None:
+        plt.figure()
+        ax = plt.gca() 
+    x = range(len(costs))
+    ax.set_title("GA Convergence")
+    ax.set_xlabel('Generation')
+    ax.set_ylabel('Cost (KM)')
+    ax.plot(x, costs, '-', label='Cost')
+    ax.text(len(x) // 2, costs[0], f'Min cost: {costs[-1]} KM', ha='center', va='center')
+    ax.legend()
+
+    if save_fig:
+        plt.savefig('fig/exp5_curve.png')
+
+    if show:
+        plt.show()
+
+
+def plot_route_ui(individual, ax, save_fig=False):
+    """
+    绘制算法求解路径，使用UI界面时不展示地图背景
+    :param individual: 包含路径信息的个体
+    :param ax: 来自UI的画布
+    :param save_fig: 是否保存图像
+    """
+    lons = [gene.lng for gene in individual.genes]
+    lats = [gene.lat for gene in individual.genes]
+    lons.append(lons[0])
+    lats.append(lats[0])
+
+    ax.plot(lons, lats, 'ro-', label="Route")
+    ax.set_title("Shortest Route")
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+    ax.legend()
+
+    if save_fig:
+        plt.savefig('fig/route.png')
+
+
+def plot_route(individual, save_fig=False):
+    """
+    绘制带有中国区域地图背景和省市边界的路径图
+    :param individual: 包含路径信息的个体
+    :param save_fig: 是否保存图像
+    """
+    fig, ax = plt.subplots(figsize=(10, 6), subplot_kw={'projection': ccrs.PlateCarree()})
+    ax.set_extent([73, 135, 18, 54], crs=ccrs.PlateCarree())  # [min_lon, max_lon, min_lat, max_lat]
+    china_shapefile_path = 'data/China_map/中华人民共和国.shp'
+    gdf = gpd.read_file(china_shapefile_path)
+    gdf.boundary.plot(ax=ax, linewidth=1, color='black')  # 黑色省界
+
+    lons = [gene.lng for gene in individual.genes]
+    lats = [gene.lat for gene in individual.genes]
+    route = [gene.name for gene in individual.genes] + [individual.genes[0].name]
+    print("路径: ", route)
+
+    # 补充形成闭环
+    lons.append(lons[0])
+    lats.append(lats[0])
+
+    ax.plot(lons, lats, 'ro-', label="Route", markersize=5)  # 红色点和线
+    ax.legend()
+    ax.set_title("Shortest Route in China with Provincial Boundaries")
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+
+    if save_fig:
+        plt.savefig('fig/exp5_TSP_route.png', bbox_inches='tight')
+
+    plt.show()
