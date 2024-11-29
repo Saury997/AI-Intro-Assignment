@@ -83,37 +83,21 @@ class TSPGAWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Genetic Algorithm - 解决旅行商问题TSP")
-
-        # 设置主窗口大小
-        self.setFixedSize(800, 800)  # 调整窗口大小以适应新的布局
-
-        # 初始化界面组件
-        self.init_ui()
+        self.setFixedSize(800, 850)  # 调整窗口大小以适应新的布局
 
         # 重定向标准输出
         sys.stdout = self.stream = Stream(newText=self.on_update_text)
 
-    def on_update_text(self, text):
-        cursor = self.log_text.textCursor()
-        cursor.movePosition(cursor.End)
-        cursor.insertText(text)
-        self.log_text.setTextCursor(cursor)
-        self.log_text.ensureCursorVisible()
-
-    def closeEvent(self, event):
-        sys.stdout = sys.__stdout__
-        super().closeEvent(event)
-
-    def init_ui(self):
+        # 初始化界面组件
         layout = QVBoxLayout(self)
 
-        # 创建一个水平布局来管理参数设置区域和日志输出区域
+        # 参数设置区域和日志输出区域水平布局
         main_layout = QHBoxLayout()
 
-        # 创建一个固定大小的参数设置区域
+        # 参数设置区域
         parameter_group = QWidget(self)
         parameter_layout = QVBoxLayout(parameter_group)
-        parameter_group.setFixedSize(300, 350)  # 调整高度以适应新的布局
+        parameter_group.setFixedSize(200, 350)  # 调整高度以适应新的布局
 
         # 种群大小
         self.pop_size_label = QLabel("种群大小:", self)
@@ -180,34 +164,38 @@ class TSPGAWindow(QtWidgets.QWidget):
         # 将参数设置区域添加到主布局中
         main_layout.addWidget(parameter_group)
 
-        # 创建日志输出区域
+        # 日志输出区域
         self.log_text = QTextEdit(self)
         self.log_text.setReadOnly(True)  # 设置为只读
-        self.log_text.setFixedSize(400, 350)  # 设置固定大小
+        self.log_text.setFixedSize(500, 350)
         main_layout.addWidget(self.log_text)
-
-        # 将主布局添加到主布局中
         layout.addLayout(main_layout)
 
-        # 创建一个水平布局来管理按钮的对齐
-        button_layout = QHBoxLayout()
-        button_layout.addStretch(1)  # 添加伸缩空间
-
         # 执行按钮
+        button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
         self.run_button = QPushButton("运行遗传算法", self)
         self.run_button.clicked.connect(self.run_ga)
-        self.run_button.setFixedSize(150, 30)  # 设置按钮的固定大小
+        self.run_button.setFixedSize(150, 30)
         button_layout.addWidget(self.run_button)
-
-        button_layout.addStretch(1)  # 添加伸缩空间
-
-        # 将水平布局添加到主布局中
+        button_layout.addStretch(1)
         layout.addLayout(button_layout)
 
-        # 创建绘图区域
+        # 绘图区域
         self.figure = Figure(figsize=(6, 4))
         self.canvas = FigureCanvas(self.figure)
         layout.addWidget(self.canvas)
+
+    def on_update_text(self, text):
+        cursor = self.log_text.textCursor()
+        cursor.movePosition(cursor.End)
+        cursor.insertText(text)
+        self.log_text.setTextCursor(cursor)
+        self.log_text.ensureCursorVisible()
+
+    def closeEvent(self, event):
+        sys.stdout = sys.__stdout__
+        super().closeEvent(event)
 
     def run_ga(self):
         # 获取界面上设置的参数
@@ -243,8 +231,8 @@ class TSPGAWindow(QtWidgets.QWidget):
     def draw_route(self, route):
         """绘制路径图"""
         try:
+            self.figure.clf()
             ax = self.figure.add_subplot(121)
-            ax.clear()
             plot_route_ui(route, ax=ax)
             self.canvas.draw()
         except Exception as e:
