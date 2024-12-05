@@ -6,7 +6,7 @@
 * Project: AI_Intro 
 * File: exp4.py
 * IDE: PyCharm 
-* Function:
+* Function: Application of Graph Convolutional Networks on Cora Dataset 
 """
 from datetime import datetime
 import torch
