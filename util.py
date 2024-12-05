@@ -14,13 +14,16 @@ import torch
 import datetime
 from matplotlib import pyplot as plt
 from tqdm import tqdm
-import cartopy.crs as ccrs
-import geopandas as gpd
+# import cartopy.crs as ccrs
+# import geopandas as gpd
 
 
-def log_progress(epoch, avg_loss, accuracy, model_name, time):
+def log_progress(epoch, avg_loss, model_name, time, accuracy: float = None):
     with open(f"log/training{model_name}_{time}.txt", "a") as log_file:
-        log_file.write(f"Epoch={epoch + 1}, Loss={avg_loss:.4f}, Val_Acc={accuracy:.4f}\n")
+        if accuracy is None:
+            log_file.write(f"Epoch={epoch + 1}, Loss={avg_loss:.4f}\n")
+        else:
+            log_file.write(f"Epoch={epoch + 1}, Loss={avg_loss:.4f}, Val_Acc={accuracy:.4f}\n")
 
 
 def train_epoch(model, dataloader, criterion, optimizer, device):
@@ -43,7 +46,7 @@ def train_epoch(model, dataloader, criterion, optimizer, device):
     return running_loss / len(dataloader)
 
 
-def train(model, train_loader, test_loader, criterion, optimizer, scheduler, device, num_epochs, exp, patience=5,
+def train(model, train_loader, criterion, optimizer, scheduler, device, num_epochs, exp, test_loader=None, patience=5,
           delta=1e-4):
     model.to(device)
     train_losses = []
@@ -60,18 +63,27 @@ def train(model, train_loader, test_loader, criterion, optimizer, scheduler, dev
         if scheduler is not None:
             scheduler.step()
 
-        predictions, ground_truths = test(model, test_loader, device)
-        accuracy = np.sum(np.array(predictions) == np.array(ground_truths)) / len(ground_truths)
-        val_accuracies.append(accuracy)
+        if test_loader is not None:
+            assert exp != 'exp3', "exp3 does not support test while training."
+            predictions, ground_truths = test(model, test_loader, device)
+            accuracy = np.sum(np.array(predictions) == np.array(ground_truths)) / len(ground_truths)
+            val_accuracies.append(accuracy)
 
-        progress_bar.set_postfix({
-            "Epoch": epoch + 1,
-            "Loss": f"{avg_loss:.4f}",
-            "Validation Acc": f"{accuracy:.4f}"
-        })
+            progress_bar.set_postfix({
+                "Epoch": epoch + 1,
+                "Loss": f"{avg_loss:.4f}",
+                "Validation Acc": f"{accuracy:.4f}"
+            })
 
-        # 记录日志信息
-        log_progress(epoch, avg_loss, accuracy, model_name, train_time)
+            # 记录日志信息
+            log_progress(epoch, avg_loss, model_name, train_time, accuracy)
+        else:
+            progress_bar.set_postfix({
+                "Epoch": epoch + 1,
+                "Loss": f"{avg_loss:.4f}"
+            })
+
+            log_progress(epoch, avg_loss, model_name, train_time)
 
         # 早停检查
         loss_queue.append(avg_loss)
@@ -82,10 +94,10 @@ def train(model, train_loader, test_loader, criterion, optimizer, scheduler, dev
                 break
 
     # 绘制训练曲线
-    plot_training_curves(train_losses, val_accuracies, exp, model_name)
+    # plot_training_curves(train_losses, val_accuracies, exp, model_name)
 
     # 保存模型权重
-    weight_path = f"weights/{model_name}_weights.pth"
+    weight_path = f"weights/{model_name}_weight.pth"
     torch.save(model.state_dict(), weight_path)
 
 
@@ -113,22 +125,42 @@ def plot_training_curves(train_losses, val_accuracies, exp, model_name):
     plt.show()
 
 
-def test(model, test_loader, device):
+def test(model, test_loader, device, weight=None, is_segmentation=False):
+    """
+    模型测试函数，用于分类或分割问题。
+    :param model: 测试模型
+    :param weight: 预训练模型权重
+    :param test_loader: 测试集加载器
+    :param device: 设备 cpu or cuda
+    :param is_segmentation: 是否为分割问题
+    """
     model.eval()
     predictions = []
     ground_truths = []
+
+    if weight is not None:
+        model.load_state_dict(torch.load(weight))
 
     with torch.no_grad():
         for images, labels in test_loader:
             images, labels = images.to(device), labels.to(device)
 
             outputs = model(images)
-            _, predicted = torch.max(outputs, 1)
+            if is_segmentation:
+                predicted = torch.sigmoid(outputs)
+            else:
+                _, predicted = torch.max(outputs, 1)  # 获取每个样本的类别标签
 
-            predictions.extend(predicted.cpu().numpy())
-            ground_truths.extend(labels.cpu().numpy())
+            predictions.append(predicted.cpu().numpy())
+            ground_truths.append(labels.cpu().numpy())
 
-    return predictions, ground_truths
+    # 将列表展平为一维数组（分类任务）
+    if not is_segmentation:
+        predictions = [item for sublist in predictions for item in sublist]
+        ground_truths = [item for sublist in ground_truths for item in sublist]
+
+    return np.array(predictions), np.array(ground_truths)
+
 
 
 def plot_ga_convergence(costs, ax=None, save_fig=False, show=True):
@@ -137,10 +169,11 @@ def plot_ga_convergence(costs, ax=None, save_fig=False, show=True):
     :param costs: 每代的代价 (成本)
     :param ax: 要绘制的坐标轴，默认为 None（表示新建一个图形）
     :param save_fig: 是否保存图像
+    :param show: 是否显示图像
     """
     if ax is None:
         plt.figure()
-        ax = plt.gca() 
+        ax = plt.gca()
     x = range(len(costs))
     ax.set_title("GA Convergence")
     ax.set_xlabel('Generation')
