@@ -19,11 +19,19 @@
   - ResNet（残差网络）  
   - DenseNet（密集连接卷积网络）  
 
-### **实验3：使用U-net进行医学图像分割**
+### **实验 3：使用U-net进行医学图像分割**
 
 - **目标**: 使用U-net模型对肝脏图像数据集执行分割任务
 - **使用模型**：
   - U-net
+
+### **实验 4：图神经网络（GNN）应用于图数据分类 - Cora 数据集**
+- **目标**：使用Cora数据集，基于节点的特征和图结构进行分类。
+- **使用模型**：
+  - GCN
+  - GAT
+  - SplineGCN
+  - ChebNet
 
 ### **实验 5: 使用遗传算法（GA）解决旅行商问题（TSP）**  
 
@@ -35,12 +43,14 @@
 
 ## 环境要求  
 - Python 3.8 或更高版本  
-- 需要的库：  
+- 依赖：  
   - PyQt5  
   - Matplotlib  
   - Geopandas  
   - Scikit-learn  
   - PyTorch
+  - Torch_geometric
+    
   详细请看requirements.txt
 
 ## 如何运行  
