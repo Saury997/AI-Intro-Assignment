@@ -14,3 +14,4 @@ from .vgg import VGG
 from .mlp import MLP
 from .cnn import CNN
 from .unet import UNet
+from .gcn import SplineGCN, GCN, GAT, ChebNet
